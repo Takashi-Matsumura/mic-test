@@ -294,7 +294,13 @@ export function MicTranscriber() {
     [tts.voices],
   );
   const selectableVoices = japaneseVoices.length > 0 ? japaneseVoices : tts.voices;
-  const selectedVoiceURI = userSelectedVoiceURI ?? selectableVoices[0]?.voiceURI ?? "";
+  const defaultVoice = useMemo(() => {
+    const googleJa = selectableVoices.find(
+      (v) => v.lang.startsWith("ja") && v.name.toLowerCase().includes("google"),
+    );
+    return googleJa ?? selectableVoices[0];
+  }, [selectableVoices]);
+  const selectedVoiceURI = userSelectedVoiceURI ?? defaultVoice?.voiceURI ?? "";
   const selectedVoice = useMemo(
     () => tts.voices.find((v) => v.voiceURI === selectedVoiceURI),
     [tts.voices, selectedVoiceURI],
