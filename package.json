@@ -6,7 +6,11 @@
     "./openfit": "./lib/openfit/index.ts",
     "./openfit/controller": "./lib/openfit/controller.ts",
     "./openfit/react": "./lib/openfit/react.ts",
-    "./openfit/types": "./lib/openfit/types.ts"
+    "./openfit/types": "./lib/openfit/types.ts",
+    "./tts": "./lib/tts/index.ts",
+    "./tts/synthesizer": "./lib/tts/synthesizer.ts",
+    "./tts/react": "./lib/tts/react.ts",
+    "./tts/types": "./lib/tts/types.ts"
   },
   "peerDependencies": {
     "react": "^19.0.0"
