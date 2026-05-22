@@ -287,28 +287,28 @@ export function MicTranscriber() {
 
   const [userSelectedVoiceURI, setUserSelectedVoiceURI] = useState<string | null>(null);
   const [rate, setRate] = useState(1.0);
-  const tts = useSpeechSynthesis();
+  const tts = useSpeechSynthesis({
+    lang: "ja-JP",
+    preferVoiceNames: ["Google"],
+    rate,
+  });
 
   const japaneseVoices = useMemo(
     () => tts.voices.filter((v) => v.lang.startsWith("ja")),
     [tts.voices],
   );
   const selectableVoices = japaneseVoices.length > 0 ? japaneseVoices : tts.voices;
-  const defaultVoice = useMemo(() => {
-    const googleJa = selectableVoices.find(
-      (v) => v.lang.startsWith("ja") && v.name.toLowerCase().includes("google"),
-    );
-    return googleJa ?? selectableVoices[0];
-  }, [selectableVoices]);
-  const selectedVoiceURI = userSelectedVoiceURI ?? defaultVoice?.voiceURI ?? "";
-  const selectedVoice = useMemo(
-    () => tts.voices.find((v) => v.voiceURI === selectedVoiceURI),
-    [tts.voices, selectedVoiceURI],
-  );
+  const autoVoice = tts.pickVoice();
+  const selectedVoiceURI =
+    userSelectedVoiceURI ?? autoVoice?.voiceURI ?? selectableVoices[0]?.voiceURI ?? "";
 
   const speakFinalText = () => {
     if (!finalText.trim()) return;
-    tts.speak(finalText, { voice: selectedVoice, lang: "ja-JP", rate });
+    if (userSelectedVoiceURI) {
+      tts.speak(finalText, { voiceURI: userSelectedVoiceURI });
+    } else {
+      tts.speak(finalText);
+    }
   };
 
   const effectiveError = error ?? openfit.error?.message ?? null;
