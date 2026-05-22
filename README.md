@@ -122,7 +122,11 @@ TTS (テキスト読み上げ):
 import { useSpeechSynthesis } from "mic-test/tts";
 
 export function SpeakerButton({ text }: { text: string }) {
-  const tts = useSpeechSynthesis({ lang: "ja-JP", rate: 1.0 });
+  const tts = useSpeechSynthesis({
+    lang: "ja-JP",
+    preferVoiceNames: ["Google", "Kyoko"],  // 優先順位順に voice 名を指定
+    rate: 1.0,
+  });
 
   if (!tts.isSupported) return null;
 
@@ -137,6 +141,26 @@ export function SpeakerButton({ text }: { text: string }) {
     </>
   );
 }
+```
+
+`preferVoiceNames` に voice 名（部分一致、大文字小文字無視）を優先順位順で渡せば、`speak()` で voice を明示しなくても自動選択されます。Chrome で「Google 日本語」を、Safari なら「Kyoko」をフォールバック、といった指定が可能。
+
+#### voice を明示したいとき
+
+```tsx
+// SpeechSynthesisVoice インスタンスを直接指定
+tts.speak("こんにちは", { voice: myVoice });
+
+// または voiceURI（state に保存しやすい文字列）で指定
+tts.speak("こんにちは", { voiceURI: "Google 日本語" });
+
+// 利用可能な voices 一覧
+tts.voices;          // SpeechSynthesisVoice[]
+tts.voicesLoaded;    // 読み込み完了したか
+
+// hook の defaults でどの voice が選ばれるかを事前に確認
+const resolved = tts.pickVoice();                                  // defaults ベース
+const ja = tts.pickVoice({ lang: "ja", preferVoiceNames: ["Google"] });  // ad-hoc
 ```
 
 ### 更新の取り込み方

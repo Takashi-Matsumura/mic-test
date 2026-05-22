@@ -12,7 +12,8 @@ const INITIAL_STATE: TTSState = {
 };
 
 export function useSpeechSynthesis(defaults: TTSOptions = {}) {
-  const { voice, lang, rate, pitch, volume } = defaults;
+  const { voice, voiceURI, preferVoiceNames, lang, rate, pitch, volume } = defaults;
+  const preferKey = preferVoiceNames?.join("|") ?? "";
   const [state, setState] = useState<TTSState>(INITIAL_STATE);
   const synthesizerRef = useRef<SpeechSynthesizer | null>(null);
 
@@ -35,8 +36,21 @@ export function useSpeechSynthesis(defaults: TTSOptions = {}) {
   }, []);
 
   useEffect(() => {
-    synthesizerRef.current?.setDefaults({ voice, lang, rate, pitch, volume });
-  }, [voice, lang, rate, pitch, volume]);
+    synthesizerRef.current?.setDefaults({
+      voice,
+      voiceURI,
+      preferVoiceNames,
+      lang,
+      rate,
+      pitch,
+      volume,
+    });
+    // preferVoiceNames は配列参照ではなく内容で比較
+  }, [voice, voiceURI, preferKey, lang, rate, pitch, volume, preferVoiceNames]);
+
+  const pickVoice = useCallback((opts: TTSOptions = {}) => {
+    return synthesizerRef.current?.pickVoice(opts);
+  }, []);
 
   const speak = useCallback((text: string, opts?: TTSOptions) => {
     synthesizerRef.current?.speak(text, opts);
@@ -64,5 +78,6 @@ export function useSpeechSynthesis(defaults: TTSOptions = {}) {
     pause,
     resume,
     cancel,
+    pickVoice,
   };
 }
