@@ -2,6 +2,20 @@
   "name": "mic-test",
   "version": "0.1.0",
   "private": true,
+  "exports": {
+    "./openfit": "./lib/openfit/index.ts",
+    "./openfit/controller": "./lib/openfit/controller.ts",
+    "./openfit/react": "./lib/openfit/react.ts",
+    "./openfit/types": "./lib/openfit/types.ts"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",

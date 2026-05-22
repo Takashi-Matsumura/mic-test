@@ -40,9 +40,80 @@ npm run dev
 
 ブラウザで [http://localhost:3000](http://localhost:3000) を開く。
 
-## ライブラリの使い方
+## 他の Next.js プロジェクトで使う
 
-任意の React アプリで:
+npm publish せずに、GitHub から直接インストールして使えます。
+
+### 1. 利用側プロジェクトでインストール
+
+```bash
+npm install github:Takashi-Matsumura/mic-test
+```
+
+特定のコミット / タグを指定する場合:
+
+```bash
+npm install github:Takashi-Matsumura/mic-test#main
+npm install github:Takashi-Matsumura/mic-test#v0.1.0
+```
+
+### 2. `next.config.ts` で transpile を有効化
+
+TypeScript のソースを直接配布しているので、Next.js 側で transpile が必要です。
+
+```ts
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  transpilePackages: ["mic-test"],
+};
+
+export default nextConfig;
+```
+
+### 3. インポートして使う
+
+```tsx
+"use client";
+
+import { useOpenFit } from "mic-test/openfit";
+
+export function MyComponent() {
+  const openfit = useOpenFit({
+    metadata: { title: "My App" },
+    onPlayPause: () => console.log("シングルクリック"),
+    onNext: () => console.log("ダブルクリック"),
+    onPrevious: () => console.log("トリプルクリック"),
+  });
+
+  return (
+    <button onClick={openfit.enabled ? openfit.disable : openfit.enable}>
+      {openfit.enabled ? "解除" : "メディアキー連携を有効化"}
+    </button>
+  );
+}
+```
+
+利用可能なエントリポイント:
+
+- `mic-test/openfit` — 全部入り（推奨）
+- `mic-test/openfit/react` — React hook のみ
+- `mic-test/openfit/controller` — フレームワーク非依存コアのみ
+- `mic-test/openfit/types` — 型定義のみ
+
+### 更新の取り込み方
+
+最新版に追従するには:
+
+```bash
+npm install github:Takashi-Matsumura/mic-test
+```
+
+を再実行。package-lock.json の sha が更新されます。
+
+## ライブラリの使い方（このリポジトリ内で）
+
+このリポジトリ内のコードから利用する場合:
 
 ```tsx
 import { useOpenFit } from "@/lib/openfit";
