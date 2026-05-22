@@ -14,22 +14,29 @@ Bluetooth デバイスの物理ボタンで操作できる、ハンズフリー�
   - **ウェイクワード** — 「記録開始 / 以上」などの発話で ON/OFF
   - **メディアキー（BT デバイス）** — Bluetooth イヤホンの物理ボタンで ON/OFF ★
 - **完全ハンズフリー** — メディアキーモードでは BT デバイスのシングル / ダブル / トリプルクリックで操作
+- **読み上げ (TTS)** — 文字起こし結果を Web Speech Synthesis で読み上げ。音声・速度をカスタマイズ可能
 
 ## アーキテクチャ
 
 ```
-lib/openfit/                 ← 再利用可能なライブラリ (npm publish 想定)
-├── index.ts                 公開エントリ
-├── types.ts                 型定義
-├── controller.ts            フレームワーク非依存コア (OpenFitController class)
-└── react.ts                 React hook (useOpenFit)
+lib/
+├── openfit/                 ← BT メディアキー連携ライブラリ
+│   ├── index.ts             公開エントリ
+│   ├── types.ts             型定義
+│   ├── controller.ts        フレームワーク非依存コア (OpenFitController class)
+│   └── react.ts             React hook (useOpenFit)
+└── tts/                     ← テキスト読み上げライブラリ
+    ├── index.ts             公開エントリ
+    ├── types.ts             型定義
+    ├── synthesizer.ts       フレームワーク非依存コア (SpeechSynthesizer class)
+    └── react.ts             React hook (useSpeechSynthesis)
 
 app/
 ├── page.tsx                 トップページ
 └── mic-transcriber.tsx      ライブラリを利用するデモアプリ
 ```
 
-`lib/openfit/` は他の Web アプリにも組み込めるように、フレームワーク非依存のコアと React 用 hook を分離しています。
+各ライブラリは他の Web アプリにも組み込めるように、フレームワーク非依存のコアと React 用 hook を分離しています。
 
 ## セットアップ
 
@@ -96,10 +103,41 @@ export function MyComponent() {
 
 利用可能なエントリポイント:
 
+OpenFit (BT メディアキー連携):
 - `mic-test/openfit` — 全部入り（推奨）
 - `mic-test/openfit/react` — React hook のみ
 - `mic-test/openfit/controller` — フレームワーク非依存コアのみ
 - `mic-test/openfit/types` — 型定義のみ
+
+TTS (テキスト読み上げ):
+- `mic-test/tts` — 全部入り（推奨）
+- `mic-test/tts/react` — React hook のみ
+- `mic-test/tts/synthesizer` — フレームワーク非依存コアのみ
+- `mic-test/tts/types` — 型定義のみ
+
+### TTS の使用例
+
+```tsx
+"use client";
+import { useSpeechSynthesis } from "mic-test/tts";
+
+export function SpeakerButton({ text }: { text: string }) {
+  const tts = useSpeechSynthesis({ lang: "ja-JP", rate: 1.0 });
+
+  if (!tts.isSupported) return null;
+
+  return (
+    <>
+      <button onClick={() => tts.speak(text)} disabled={tts.speaking}>
+        🔊 読み上げ
+      </button>
+      {tts.speaking && (
+        <button onClick={tts.cancel}>⏹ 停止</button>
+      )}
+    </>
+  );
+}
+```
 
 ### 更新の取り込み方
 

@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useOpenFit } from "@/lib/openfit";
+import { useSpeechSynthesis } from "@/lib/tts";
 
 type SpeechRecognitionLike = {
   lang: string;
@@ -284,6 +285,26 @@ export function MicTranscriber() {
     setError(null);
   };
 
+  const [userSelectedVoiceURI, setUserSelectedVoiceURI] = useState<string | null>(null);
+  const [rate, setRate] = useState(1.0);
+  const tts = useSpeechSynthesis();
+
+  const japaneseVoices = useMemo(
+    () => tts.voices.filter((v) => v.lang.startsWith("ja")),
+    [tts.voices],
+  );
+  const selectableVoices = japaneseVoices.length > 0 ? japaneseVoices : tts.voices;
+  const selectedVoiceURI = userSelectedVoiceURI ?? selectableVoices[0]?.voiceURI ?? "";
+  const selectedVoice = useMemo(
+    () => tts.voices.find((v) => v.voiceURI === selectedVoiceURI),
+    [tts.voices, selectedVoiceURI],
+  );
+
+  const speakFinalText = () => {
+    if (!finalText.trim()) return;
+    tts.speak(finalText, { voice: selectedVoice, lang: "ja-JP", rate });
+  };
+
   const effectiveError = error ?? openfit.error?.message ?? null;
 
   const mainButtonLabel = () => {
@@ -555,22 +576,109 @@ export function MicTranscriber() {
       )}
 
       <div className="relative overflow-hidden rounded-3xl border border-zinc-200/60 bg-white/80 shadow-xl shadow-zinc-900/5 backdrop-blur-md dark:border-zinc-800/60 dark:bg-zinc-900/70 dark:shadow-black/30">
-        <div className="flex items-center justify-between border-b border-zinc-200/60 px-5 py-3 dark:border-zinc-800/60">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/60 px-5 py-3 dark:border-zinc-800/60">
           <div className="flex items-center gap-2 text-xs font-medium text-zinc-600 dark:text-zinc-400">
             <DocumentIcon className="h-3.5 w-3.5" />
             文字起こし結果
           </div>
-          <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider">
-            <span
-              className={`h-1.5 w-1.5 rounded-full ${
-                recording ? "animate-pulse bg-red-500" : listening ? "bg-amber-400" : "bg-zinc-400"
-              }`}
-            />
-            <span className="text-zinc-500">
-              {recording ? "Recording" : listening ? "Listening" : "Idle"}
-            </span>
+
+          <div className="flex items-center gap-2">
+            {tts.isSupported && (
+              <>
+                {!tts.speaking && (
+                  <button
+                    onClick={speakFinalText}
+                    disabled={!finalText.trim()}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 px-3 py-1 text-xs font-medium text-white shadow-sm shadow-indigo-500/30 transition-all hover:from-indigo-600 hover:to-purple-700 disabled:opacity-40 disabled:shadow-none"
+                  >
+                    <SpeakerIcon className="h-3.5 w-3.5" />
+                    読み上げ
+                  </button>
+                )}
+                {tts.speaking && !tts.paused && (
+                  <button
+                    onClick={tts.pause}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-amber-500 px-3 py-1 text-xs font-medium text-white shadow-sm transition-all hover:bg-amber-600"
+                  >
+                    <PauseIcon className="h-3.5 w-3.5" />
+                    一時停止
+                  </button>
+                )}
+                {tts.paused && (
+                  <button
+                    onClick={tts.resume}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500 px-3 py-1 text-xs font-medium text-white shadow-sm transition-all hover:bg-emerald-600"
+                  >
+                    <PlayIcon className="h-3.5 w-3.5" />
+                    再開
+                  </button>
+                )}
+                {tts.speaking && (
+                  <button
+                    onClick={tts.cancel}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-zinc-300 bg-white px-3 py-1 text-xs font-medium text-zinc-700 shadow-sm transition-all hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                  >
+                    <StopSmallIcon className="h-3.5 w-3.5" />
+                    停止
+                  </button>
+                )}
+              </>
+            )}
+
+            <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider">
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  recording ? "animate-pulse bg-red-500" : listening ? "bg-amber-400" : "bg-zinc-400"
+                }`}
+              />
+              <span className="text-zinc-500">
+                {recording ? "Recording" : listening ? "Listening" : "Idle"}
+              </span>
+            </div>
           </div>
         </div>
+
+        {tts.isSupported && (
+          <details className="border-b border-zinc-200/60 px-5 dark:border-zinc-800/60">
+            <summary className="cursor-pointer py-2 text-xs font-medium text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
+              読み上げ設定
+            </summary>
+            <div className="grid gap-3 pb-3 pt-1 sm:grid-cols-2">
+              <label className="flex flex-col gap-1 text-xs">
+                <span className="font-medium text-zinc-600 dark:text-zinc-400">音声</span>
+                <select
+                  value={selectedVoiceURI}
+                  onChange={(e) => setUserSelectedVoiceURI(e.target.value)}
+                  disabled={!tts.voicesLoaded}
+                  className="rounded-lg border border-zinc-300 bg-white px-2 py-1 text-xs disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900"
+                >
+                  {!tts.voicesLoaded && <option>読み込み中…</option>}
+                  {selectableVoices.map((v) => (
+                    <option key={v.voiceURI} value={v.voiceURI}>
+                      {v.name} ({v.lang})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-xs">
+                <span className="flex items-center justify-between font-medium text-zinc-600 dark:text-zinc-400">
+                  <span>速度</span>
+                  <span className="font-mono text-zinc-500">{rate.toFixed(1)}x</span>
+                </span>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="2"
+                  step="0.1"
+                  value={rate}
+                  onChange={(e) => setRate(parseFloat(e.target.value))}
+                  className="accent-indigo-500"
+                />
+              </label>
+            </div>
+          </details>
+        )}
+
         <div className="min-h-[220px] p-6">
           {hasText ? (
             <p className="whitespace-pre-wrap text-lg leading-relaxed">
@@ -695,6 +803,41 @@ function DocumentIcon({ className = "" }: { className?: string }) {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
       <polyline points="14 2 14 8 20 8" />
+    </svg>
+  );
+}
+
+function SpeakerIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+      <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+    </svg>
+  );
+}
+
+function PauseIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <rect x="6" y="5" width="4" height="14" rx="1" />
+      <rect x="14" y="5" width="4" height="14" rx="1" />
+    </svg>
+  );
+}
+
+function PlayIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <polygon points="6 4 20 12 6 20 6 4" />
+    </svg>
+  );
+}
+
+function StopSmallIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <rect x="6" y="6" width="12" height="12" rx="1.5" />
     </svg>
   );
 }
