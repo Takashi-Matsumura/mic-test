@@ -31,7 +31,8 @@ export class SpeechSynthesizer {
 
     const utterance = new SpeechSynthesisUtterance(trimmed);
     const opts: TTSOptions = { ...this.defaultOptions, ...options };
-    if (opts.voice) utterance.voice = opts.voice;
+    const resolvedVoice = this.resolveVoice(opts);
+    if (resolvedVoice) utterance.voice = resolvedVoice;
     if (opts.lang) utterance.lang = opts.lang;
     if (opts.rate !== undefined) utterance.rate = opts.rate;
     if (opts.pitch !== undefined) utterance.pitch = opts.pitch;
@@ -92,6 +93,32 @@ export class SpeechSynthesizer {
   private loadVoices(): void {
     const voices = window.speechSynthesis.getVoices();
     this.updateState({ voices, voicesLoaded: voices.length > 0 });
+  }
+
+  private resolveVoice(opts: TTSOptions): SpeechSynthesisVoice | undefined {
+    if (opts.voice) return opts.voice;
+    const voices = this.state.voices;
+    if (opts.voiceURI) {
+      const matched = voices.find((v) => v.voiceURI === opts.voiceURI);
+      if (matched) return matched;
+    }
+    if (opts.preferVoiceNames?.length) {
+      const langPrefix = opts.lang?.slice(0, 2).toLowerCase();
+      for (const name of opts.preferVoiceNames) {
+        const needle = name.toLowerCase();
+        const matched = voices.find(
+          (v) =>
+            (!langPrefix || v.lang.toLowerCase().startsWith(langPrefix)) &&
+            v.name.toLowerCase().includes(needle),
+        );
+        if (matched) return matched;
+      }
+    }
+    return undefined;
+  }
+
+  pickVoice(opts: TTSOptions): SpeechSynthesisVoice | undefined {
+    return this.resolveVoice({ ...this.defaultOptions, ...opts });
   }
 
   private updateState(patch: Partial<TTSState>): void {
